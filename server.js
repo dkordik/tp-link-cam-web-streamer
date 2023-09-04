@@ -26,8 +26,8 @@ const outputPath = path.join(__dirname, outputFilename);
     method: "get",
     url: SECRETS.url,
     auth: {
-      username: SECRETS.auth.username,
-      password: SECRETS.auth.password,
+      username: SECRETS.username,
+      password: SECRETS.password,
     },
     httpsAgent: agent,
     responseType: "stream",
