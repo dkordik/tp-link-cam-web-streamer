@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>HLS Stream</title>
+</head>
+
+<body>
+  <video id="nativeVideo" controls autoplay muted playsinline width="640" height="360" style="display:none;">
+    <source src="http://danbook.local:3000/stream" type="application/vnd.apple.mpegurl">
+  </video>
+  <video id="hlsVideo" width="640" height="360" controls autoplay muted style="display:none;"></video>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const nativeVideo = document.getElementById('nativeVideo');
+    const hlsVideo = document.getElementById('hlsVideo');
+
+    if (isIOS) {
+      nativeVideo.style.display = 'block';
+      nativeVideo.play();
+    } else {
+      hlsVideo.style.display = 'block';
+
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          maxBufferLength: 10,
+          maxBufferSize: 100000000,
+          liveSyncDurationCount: 2,  // keep only two segments in buffer
+          maxBufferLength: 2,  // in seconds
+        });
+        hls.loadSource('http://danbook.local:3000/stream');
+        hls.attachMedia(hlsVideo);
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          hlsVideo.play();
+        });
+      } else if (hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
+        hlsVideo.src = 'http://danbook.local:3000/stream';
+        hlsVideo.addEventListener('loadedmetadata', function () {
+          hlsVideo.play();
+        });
+      }
+    }
+  </script>
+</body>
+
+</html>
