@@ -40,7 +40,7 @@ const outputPath = path.join(__dirname, outputFilename);
   ffmpeg(response.data)
     .inputFormat("h264")
     .videoCodec("libx264")
-    .audioCodec("aac")
+    .addOption("-an") // No audio
     .addOption("-strict", "experimental")
     .addOption("-hls_time", "2") // N-second segment duration
     .addOption("-hls_list_size", "2") // Keep only N segments in the playlist
