@@ -8,7 +8,7 @@
 
 <body>
   <video id="nativeVideo" controls autoplay muted playsinline width="640" height="360" style="display:none;">
-    <source src="http://danbook.local:3000/stream" type="application/vnd.apple.mpegurl">
+    <source src="http://localhost:3000/stream" type="application/vnd.apple.mpegurl">
   </video>
   <video id="hlsVideo" width="640" height="360" controls autoplay muted style="display:none;"></video>
 
@@ -31,13 +31,13 @@
           liveSyncDurationCount: 2,  // keep only two segments in buffer
           maxBufferLength: 1,  // in seconds
         });
-        hls.loadSource('http://danbook.local:3000/stream');
+        hls.loadSource('http://localhost:3000/stream');
         hls.attachMedia(hlsVideo);
         hls.on(Hls.Events.MANIFEST_PARSED, function () {
           hlsVideo.play();
         });
       } else if (hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
-        hlsVideo.src = 'http://danbook.local:3000/stream';
+        hlsVideo.src = 'http://localhost:3000/stream';
         hlsVideo.addEventListener('loadedmetadata', function () {
           hlsVideo.play();
         });
