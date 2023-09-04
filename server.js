@@ -11,10 +11,6 @@ const SECRETS = require("./secrets");
 const app = express();
 app.use(cors());
 
-const agent = new https.Agent({
-  rejectUnauthorized: false,
-});
-
 let readyToStream = false;
 
 const outputFilename = "output.m3u8";
@@ -22,9 +18,16 @@ const outputPath = path.join(__dirname, outputFilename);
 
 (async () => {
   console.log("[startup] connecting to source...");
+
+  // tplink https stream uses a self-signed cert, which we need to allow
+  const agent = new https.Agent({
+    rejectUnauthorized: false,
+  });
+
   const response = await axios({
     method: "get",
-    url: SECRETS.url,
+    url: `https://${SECRETS.ip}:19443/`
+      + `https/stream/mixed?video=h264&audio=g711&resolution=hd`,
     auth: {
       username: SECRETS.username,
       password: SECRETS.password,
