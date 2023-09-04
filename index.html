@@ -28,7 +28,7 @@
         const hls = new Hls({
           maxBufferLength: 10,
           maxBufferSize: 100000000,
-          liveSyncDurationCount: 1,  // keep only two segments in buffer
+          liveSyncDurationCount: 2,  // keep only two segments in buffer
           maxBufferLength: 1,  // in seconds
         });
         hls.loadSource('http://danbook.local:3000/stream');
