@@ -7,22 +7,30 @@
 </head>
 
 <body>
-  <video id="nativeVideo" controls autoplay muted playsinline width="640" height="360" style="display:none;">
+  <h1 id="nativeVideoHeader" style="display:none;">Native video (mobile)</h1>
+
+  <video id="nativeVideo" controls autoplay muted name="media" style="display:none;">
     <source src="http://localhost:3313/stream" type="application/vnd.apple.mpegurl">
   </video>
+
+  <h1 id="hlsVideoHeader" style="display:none;">HLS video (desktop)</h1>
   <video id="hlsVideo" width="640" height="360" controls autoplay muted style="display:none;"></video>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isIOS = /iPad|iPhone|iPod|Android/.test(navigator.userAgent) && !window.MSStream;
     const nativeVideo = document.getElementById('nativeVideo');
     const hlsVideo = document.getElementById('hlsVideo');
+    const nativeVideoHeader = document.getElementById('nativeVideoHeader');
+    const hlsVideoHeader = document.getElementById('hlsVideoHeader');
 
     if (isIOS) {
       nativeVideo.style.display = 'block';
+      nativeVideoHeader.style.display = 'block';
       nativeVideo.play();
     } else {
       hlsVideo.style.display = 'block';
+      hlsVideoHeader.style.display = 'block';
 
       if (Hls.isSupported()) {
         const hls = new Hls({
