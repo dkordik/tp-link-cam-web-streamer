@@ -42,8 +42,10 @@ const outputPath = path.join(__dirname, outputFilename);
     .videoCodec("libx264")
     .audioCodec("aac")
     .addOption("-strict", "experimental")
-    .addOption("-hls_time", "1")
-    .addOption("-hls_list_size", "3")
+    .addOption("-hls_time", "2") // N-second segment duration
+    .addOption("-hls_list_size", "2") // Keep only N segments in the playlist
+    .addOption("-hls_flags", "split_by_time+append_list+delete_segments") // Appending to the list and deleting old segments
+    .addOption("-hls_delete_threshold", "1") // Number of files to keep beyond the hls_list_size setting
     .output(outputPath)
     .on("start", () => {
       console.log("FFmpeg process started");
@@ -65,54 +67,53 @@ const outputPath = path.join(__dirname, outputFilename);
   });
 })();
 
-// Watch for changes in the root directory
-fs.watch(__dirname, (eventType, filename) => {
-  if (filename && filename.startsWith("output") && filename.endsWith(".m3u8")) {
-    // Read the contents of the updated .m3u8 file
-    fs.readFile(path.join(__dirname, filename), "utf8", (err, data) => {
+const cleanUpGhostFiles = () => {
+  // Read the contents of the updated .m3u8 file
+  fs.readFile(path.join(__dirname, "output.m3u8"), "utf8", (err, data) => {
+    if (err) {
+      console.error(`Error reading ${filename}:`, err);
+      return;
+    }
+
+    // Extract the names of the .ts files that are still in use
+    const usedSegments = new Set(data.match(/output\d+\.ts/g));
+
+    // Read the root directory to get the list of all files
+    fs.readdir(__dirname, (err, files) => {
       if (err) {
-        console.error(`Error reading ${filename}:`, err);
+        console.error("Error reading root directory:", err);
         return;
       }
 
-      // Extract the names of the .ts files that are still in use
-      const usedSegments = new Set(data.match(/output\d+\.ts/g));
+      // Filter out the .ts files that start with "output"
+      const allSegments = new Set(
+        files.filter(
+          (file) => file.startsWith("output") && file.endsWith(".ts")
+        )
+      );
 
-      // Read the root directory to get the list of all files
-      fs.readdir(__dirname, (err, files) => {
-        if (err) {
-          console.error("Error reading root directory:", err);
-          return;
-        }
+      // Find the .ts files that are no longer in use
+      const unusedSegments = new Set(
+        [...allSegments].filter((x) => !usedSegments.has(x))
+      );
 
-        // Filter out the .ts files that start with "output"
-        const allSegments = new Set(
-          files.filter(
-            (file) => file.startsWith("output") && file.endsWith(".ts")
-          )
-        );
-
-        // Find the .ts files that are no longer in use
-        const unusedSegments = new Set(
-          [...allSegments].filter((x) => !usedSegments.has(x))
-        );
-
-        // Delete the unused .ts files
-        for (const segment of unusedSegments) {
-          fs.unlink(path.join(__dirname, segment), (err) => {
-            if (err) {
-              console.error(`Error deleting ${segment}:`, err);
-            } else {
-              console.log(`Deleted unused segment: ${segment}`);
-            }
-          });
-        }
-      });
+      // Delete the unused .ts files
+      for (const segment of unusedSegments) {
+        fs.unlink(path.join(__dirname, segment), (err) => {
+          console.log("[cleanup] Cleaning up ghost file", segment);
+          if (err) {
+            console.error(`-- Error deleting ${segment}:`, err);
+          } else {
+            console.log(`-- Deleted unused segment: ${segment}`);
+          }
+        });
+      }
     });
-  }
-});
+  });
+}
 
 
+cleanUpGhostFiles();
 
 app.get("/stream", async (req, res) => {
   try {
