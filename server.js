@@ -73,9 +73,9 @@ const outputPath = path.join(__dirname, outputFilename);
 
 const cleanUpGhostFiles = () => {
   // Read the contents of the updated .m3u8 file
-  fs.readFile(path.join(__dirname, "output.m3u8"), "utf8", (err, data) => {
+  fs.readFile(path.join(__dirname, outputFilename), "utf8", (err, data) => {
     if (err) {
-      console.error(`Error reading ${filename}:`, err);
+      console.error(`Error reading ${outputFilename}:`, err);
       return;
     }
 
