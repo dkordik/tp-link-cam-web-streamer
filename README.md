@@ -1,4 +1,4 @@
-# tp-link-web-stream
+# tp-link-cam-web-streamer
 
 Re-streaming a TP-Link camera's HTTPS H264 video stream into a browser-friendly LL-HLS (low-latency HLS) format using `ffmpeg`.
 
