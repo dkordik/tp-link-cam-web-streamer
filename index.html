@@ -29,7 +29,7 @@
           maxBufferLength: 10,
           maxBufferSize: 100000000,
           liveSyncDurationCount: 1,  // keep only two segments in buffer
-          maxBufferLength: 2,  // in seconds
+          maxBufferLength: 1,  // in seconds
         });
         hls.loadSource('http://danbook.local:3000/stream');
         hls.attachMedia(hlsVideo);
