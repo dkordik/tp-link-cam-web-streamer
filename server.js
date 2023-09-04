@@ -7,6 +7,7 @@ const path = require("path");
 const https = require("https");
 
 const SECRETS = require("./secrets");
+const PORT = "3313";
 
 const app = express();
 app.use(cors());
@@ -144,6 +145,6 @@ app.get("/:segment.ts", (req, res) => {
   readStream.pipe(res);
 });
 
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });

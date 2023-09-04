@@ -16,7 +16,7 @@ Re-streaming a TP-Link camera's HTTPS H264 video stream into a browser-friendly 
 
 ### Run
 
-- Run `node server.js` to start a server that listens at `http://localhost:3000/stream` and produces a stream viewable directly in a browser, or embeddable into a client implementation
+- Run `node server.js` to start a server that listens at `http://localhost:3313/stream` and produces a stream viewable directly in a browser, or embeddable into a client implementation
 
 - There is also an example client implementation at `index.html`. You can test it out by running an HTTP server in that directory (e.g. with [http-server](https://www.npmjs.com/package/http-server))
 
