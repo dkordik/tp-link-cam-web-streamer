@@ -1,5 +1,9 @@
-const express = require("express");
-const cors = require("cors");
+const http = require("node:http");
+const http2 = require("node:http2");
+const Koa = require("koa");
+const cors = require("@koa/cors");
+const route = require("koa-route");
+
 const ffmpeg = require("fluent-ffmpeg");
 const fs = require("fs");
 const path = require("path");
@@ -7,7 +11,7 @@ const path = require("path");
 const SECRETS = require("./secrets");
 const PORT = "3313";
 
-const app = express();
+const app = new Koa();
 app.use(cors());
 
 let readyToStream = false;
@@ -43,10 +47,14 @@ ffmpeg(inputUrl)
   })
   .run();
 
-console.log("[startup] watching for new output.m3u8 to give signal to start streaming");
+console.log(
+  "[startup] watching for new output.m3u8 to give signal to start streaming"
+);
 fs.watch(path.join(__dirname), (eventType, filename) => {
   if (!readyToStream && filename === outputFilename) {
-    console.log(`\n\n[[[[[ fs.watch: saw ${outputFilename} change! OPENING THE PIPE! ]]]]]\n\n`);
+    console.log(
+      `\n\n[[[[[ fs.watch: saw ${outputFilename} change! OPENING THE PIPE! ]]]]]\n\n`
+    );
     readyToStream = true;
   }
 });
@@ -94,37 +102,78 @@ const cleanUpGhostFiles = () => {
       }
     });
   });
-}
-
+};
 
 cleanUpGhostFiles();
 
-app.get("/stream", async (req, res) => {
-  try {
-    console.log("got request to /stream");
+// app.get("/stream", async (req, res) => {
+//   try {
+//     console.log("got request to /stream");
 
+//     if (!readyToStream) {
+//       return res.status(500).send("Stream not ready. Try again soon.");
+//     }
+
+//     console.log("opening the pipe...");
+//     res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+//     const readStream = fs.createReadStream(outputPath);
+//     readStream.pipe(res);
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send(err);
+//   }
+// });
+
+// app.get("/:segment.ts", (req, res) => {
+//   const segmentFile = path.join(__dirname, req.params.segment + ".ts");
+//   res.setHeader("Content-Type", "video/MP2T");
+//   const readStream = fs.createReadStream(segmentFile);
+//   readStream.pipe(res);
+// });
+
+app.use(
+  route.get("/stream", async (ctx) => {
+    console.log("got request to /stream");
     if (!readyToStream) {
-      return res.status(500).send("Stream not ready. Try again soon.");
+      ctx.status = 500;
+      ctx.body = "Stream not ready. Try again soon.";
+      return;
     }
 
     console.log("opening the pipe...");
-    res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
-    const readStream = fs.createReadStream(outputPath);
-    readStream.pipe(res);
+    ctx.set("Content-Type", "application/vnd.apple.mpegurl");
+    ctx.body = fs.createReadStream(outputPath);
+  })
+);
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).send(err);
-  }
-});
+app.use(
+  route.get("/:segment.ts", (ctx, segment) => {
+    const segmentFile = path.join(__dirname, segment + ".ts");
+    ctx.set("Content-Type", "video/MP2T");
+    ctx.body = fs.createReadStream(segmentFile);
+  })
+);
 
-app.get("/:segment.ts", (req, res) => {
-  const segmentFile = path.join(__dirname, req.params.segment + ".ts");
-  res.setHeader("Content-Type", "video/MP2T");
-  const readStream = fs.createReadStream(segmentFile);
-  readStream.pipe(res);
-});
+const certPath = path.join(__dirname, "localhost.pem");
+const keyPath = path.join(__dirname, "localhost-key.pem");
+const certExists = fs.existsSync(certPath);
+const keyExists = fs.existsSync(keyPath);
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+if (certExists && keyExists) {
+  // If both certificate and key exist, set up an HTTP/2 server
+  server = http2.createSecureServer(
+    {
+      cert: fs.readFileSync(certPath),
+      key: fs.readFileSync(keyPath),
+    },
+    app.callback()
+  );
+  console.log(`Starting an HTTP/2 server on https://localhost:${PORT}`);
+} else {
+  // If either is missing, set up a regular HTTP server
+  server = http.createServer(app.callback());
+  console.log(`Starting an HTTP server on http://localhost:${PORT}`);
+}
+
+server.listen(PORT);

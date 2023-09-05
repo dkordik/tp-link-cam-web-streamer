@@ -8,11 +8,22 @@ Re-streaming a TP-Link camera's HTTPS H264 video stream into a browser-friendly 
 
 - Ensure Node.js is installed
 
-- Ensure `ffmpeg` is installed on your system (`e.g. brew install ffmpeg`)
+- Install `ffmpeg` (`e.g. brew install ffmpeg`)
 
 - Duplicate [secrets.example.js](./secrets.example.js) as `secrets.js`, and fill it out with your camera IP and credentials
 
 - Run `npm install`
+
+#### HTTP/2
+
+- The server will use HTTPS+HTTP/2 for lower latency if it detects certificates at `localhost.pem`/`localhost-key.pem`, or will use HTTP/1 if no cert files are detected.
+
+#### (Optional) To set up certs for local testing
+
+- Install `mkcert` (`e.g. brew install mkcert`)
+
+  - Run `mkcert -install` to create local CA
+  - Run `mkcert localhost` to generate local keys
 
 ### Run
 
