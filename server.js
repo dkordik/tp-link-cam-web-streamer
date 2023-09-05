@@ -1,10 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const ffmpeg = require("fluent-ffmpeg");
-const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
-const https = require("https");
 
 const SECRETS = require("./secrets");
 const PORT = "3313";
@@ -17,59 +15,41 @@ let readyToStream = false;
 const outputFilename = "output.m3u8";
 const outputPath = path.join(__dirname, outputFilename);
 
-(async () => {
-  console.log("[startup] connecting to source...");
+const inputUrl =
+  `https://${encodeURIComponent(SECRETS.username)}:${SECRETS.password}@${
+    SECRETS.ip
+  }:19443/` + `https/stream/mixed?video=h264&audio=g711&resolution=hd`;
 
-  // tplink https stream uses a self-signed cert, which we need to allow
-  const agent = new https.Agent({
-    rejectUnauthorized: false,
-  });
+console.log("[startup] connecting to source and beginning ffmpeg pipeline");
+ffmpeg(inputUrl)
+  .inputFormat("h264")
+  .videoCodec("libx264")
+  .addOption("-an") // No audio
+  .addOption("-preset ultrafast")
+  .addOption("-strict", "experimental")
+  .addOption("-hls_time", "2") // N-second segment duration
+  .addOption("-hls_list_size", "2") // Keep only N segments in the playlist
+  .addOption("-hls_flags", "split_by_time+append_list+delete_segments") // Appending to the list and deleting old segments
+  .addOption("-hls_delete_threshold", "1") // Number of files to keep beyond the hls_list_size setting
+  .output(outputPath)
+  .on("start", () => {
+    console.log("FFmpeg process started");
+  })
+  .on("end", () => {
+    console.log("FFmpeg process finished");
+  })
+  .on("stderr", (stderrLine) => {
+    console.log("  [FFmpeg] ", stderrLine);
+  })
+  .run();
 
-  const response = await axios({
-    method: "get",
-    url: `https://${SECRETS.ip}:19443/`
-      + `https/stream/mixed?video=h264&audio=g711&resolution=hd`,
-    auth: {
-      username: SECRETS.username,
-      password: SECRETS.password,
-    },
-    httpsAgent: agent,
-    responseType: "stream",
-  });
-  
-  console.log("[startup] connection succeeded to source.");
-  
-
-  console.log("[startup] beginning ffmpeg pipeline");
-  ffmpeg(response.data)
-    .inputFormat("h264")
-    .videoCodec("libx264")
-    .addOption("-an") // No audio
-    .addOption("-strict", "experimental")
-    .addOption("-hls_time", "2") // N-second segment duration
-    .addOption("-hls_list_size", "2") // Keep only N segments in the playlist
-    .addOption("-hls_flags", "split_by_time+append_list+delete_segments") // Appending to the list and deleting old segments
-    .addOption("-hls_delete_threshold", "1") // Number of files to keep beyond the hls_list_size setting
-    .output(outputPath)
-    .on("start", () => {
-      console.log("FFmpeg process started");
-    })
-    .on("end", () => {
-      console.log("FFmpeg process finished");
-    })
-    .on("stderr", (stderrLine) => {
-      console.log("  [FFmpeg] ", stderrLine);
-    })
-    .run();
-
-  console.log("[startup] watching for new output.m3u8 to give signal to start streaming");
-  fs.watch(path.join(__dirname), (eventType, filename) => {
-    if (!readyToStream && filename === outputFilename) {
-      console.log(`\n\n[[[[[ fs.watch: saw ${outputFilename} change! OPENING THE PIPE! ]]]]]\n\n`);
-      readyToStream = true;
-    }
-  });
-})();
+console.log("[startup] watching for new output.m3u8 to give signal to start streaming");
+fs.watch(path.join(__dirname), (eventType, filename) => {
+  if (!readyToStream && filename === outputFilename) {
+    console.log(`\n\n[[[[[ fs.watch: saw ${outputFilename} change! OPENING THE PIPE! ]]]]]\n\n`);
+    readyToStream = true;
+  }
+});
 
 const cleanUpGhostFiles = () => {
   // Read the contents of the updated .m3u8 file
